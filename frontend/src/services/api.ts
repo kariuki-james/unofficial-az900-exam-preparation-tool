@@ -1,6 +1,6 @@
 import type { AnswerResult, ProgressData, Question } from "../types";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = "https://unofficial-az900-exam-preparation-tool.onrender.com/";
 
 export async function getQuestions(): Promise<Question[]> {
   const response = await fetch(`${API_BASE}/questions`);
