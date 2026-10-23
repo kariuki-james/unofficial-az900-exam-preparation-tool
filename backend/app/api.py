@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -6,14 +7,18 @@ from .schemas import AnswerResult, AnswerSubmission, Question
 
 app = FastAPI(title="AZ-900 Unofficial Study Tool")
 
+allowed_origins = os.getenv(
+    "ALLOWED_OROGINS",
+    "http://localhost:5173,http://127.0.0.1:5173"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 @app.get("/")
 def root():
