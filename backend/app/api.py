@@ -1,4 +1,5 @@
 import os
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -9,7 +10,7 @@ app = FastAPI(title="AZ-900 Unofficial Study Tool")
 
 allowed_origins = os.getenv(
     "ALLOWED_ORIGINS",
-    "http://localhost:5173,http://127.0.0.1:5173"
+    "http://localhost:5173,http://127.0.0.1:5173",
 ).split(",")
 
 app.add_middleware(
@@ -19,6 +20,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+USER_ID = "demo"
+
+TOPICS = [
+    "Cloud Concepts",
+    "Azure Architecture and Services",
+    "Azure Management and Governance",
+]
+
+PROGRESS_STORE: dict[str, dict[str, dict[str, int]]] = {
+    USER_ID: {topic: {"answered": 0, "correct": 0} for topic in TOPICS}
+}
+
 
 @app.get("/")
 def root():
@@ -39,8 +53,15 @@ def submit_answer(submission: AnswerSubmission):
     if question is None:
         raise HTTPException(status_code=404, detail="Question not found")
 
+    is_correct = submission.selected_index == question["correct_index"]
+
+    topic_progress = PROGRESS_STORE[USER_ID][question["topic"]]
+    topic_progress["answered"] += 1
+    if is_correct:
+        topic_progress["correct"] += 1
+
     return AnswerResult(
-        correct=submission.selected_index == question["correct_index"],
+        correct=is_correct,
         explanation=question["explanation"],
         correct_index=question["correct_index"],
     )
@@ -48,13 +69,26 @@ def submit_answer(submission: AnswerSubmission):
 
 @app.get("/progress")
 def get_progress():
+    user_progress = PROGRESS_STORE[USER_ID]
+    total_answered = sum(stats["answered"] for stats in user_progress.values())
+    correct_count = sum(stats["correct"] for stats in user_progress.values())
+
+    percentage = (
+        round((correct_count / total_answered) * 100, 1) if total_answered > 0 else 0.0
+    )
+
+    topic_breakdown: dict[str, float] = {}
+    for topic in TOPICS:
+        stats = user_progress[topic]
+        topic_breakdown[topic] = (
+            round((stats["correct"] / stats["answered"]) * 100, 1)
+            if stats["answered"] > 0
+            else 0.0
+        )
+
     return {
-        "total_answered": 18,
-        "correct_count": 13,
-        "percentage": 72.2,
-        "topic_breakdown": {
-            "Cloud Concepts": 83.3,
-            "Azure Architecture and Services": 70.0,
-            "Azure Management and Governance": 62.5,
-        },
+        "total_answered": total_answered,
+        "correct_count": correct_count,
+        "percentage": percentage,
+        "topic_breakdown": topic_breakdown,
     }

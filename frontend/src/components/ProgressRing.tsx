@@ -42,7 +42,7 @@ export default function ProgressRing({ percentage }: ProgressRingProps) {
     >
       <svg className="h-full w-full" viewBox="0 0 120 120" aria-hidden="true">
         <circle
-          className="text-slate-100"
+          className="text-slate-100 dark:text-slate-800"
           cx="60"
           cy="60"
           r={RADIUS}
@@ -65,10 +65,10 @@ export default function ProgressRing({ percentage }: ProgressRingProps) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl">
+        <span className="text-4xl font-bold tracking-tight text-slate-900 sm:text-5xl dark:text-slate-100">
           {Math.round(clampedPercentage)}%
         </span>
-        <span className="mt-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-500">
+        <span className="mt-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-slate-500 dark:text-slate-400">
           Ready
         </span>
       </div>
