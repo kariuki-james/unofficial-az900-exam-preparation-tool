@@ -1,6 +1,6 @@
 import type { AnswerResult, ProgressData, Question } from "../types";
 
-const API_BASE = "https://unofficial-az900-exam-preparation-tool.onrender.com";
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
 
 export async function getQuestions(): Promise<Question[]> {
   const response = await fetch(`${API_BASE}/questions`);
