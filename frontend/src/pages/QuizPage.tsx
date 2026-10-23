@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
-import confetti from "canvas-confetti";
 
 import QuizCard, { type QuizCardState } from "../components/QuizCard";
-import { getQuestions, submitAnswer } from "../services/api";
-import type { AnswerResult, Question } from "../types";
+import { getProgress, getQuestions, submitAnswer } from "../services/api";
+import type { AnswerResult, ProgressData, Question } from "../types";
 
-export default function QuizPage() {
+interface QuizPageProps {
+  onComplete: (progress: ProgressData) => void;
+}
+
+export default function QuizPage({ onComplete }: QuizPageProps) {
   const [questions, setQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
@@ -13,7 +16,8 @@ export default function QuizPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [finished, setFinished] = useState(false);
+  const [completeError, setCompleteError] = useState<string | null>(null);
+  const [completing, setCompleting] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -75,20 +79,24 @@ export default function QuizPage() {
     }
   }
 
-  function handleNext() {
-    if (!result) {
+  async function handleNext() {
+    if (!result || completing) {
       return;
     }
 
     if (isLastQuestion) {
       console.log("quiz finished");
-      void confetti({
-        particleCount: 160,
-        spread: 80,
-        origin: { y: 0.6 },
-        colors: ["#2563eb", "#22c55e", "#f59e0b", "#ec4899"],
-      });
-      setFinished(true);
+      setCompleting(true);
+      setCompleteError(null);
+
+      try {
+        const progress = await getProgress();
+        onComplete(progress);
+      } catch {
+        setCompleting(false);
+        setCompleteError("Could not load your results. Please try again.");
+      }
+
       return;
     }
 
@@ -97,14 +105,6 @@ export default function QuizPage() {
     setResult(null);
     setSubmitError(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function handleRestart() {
-    setFinished(false);
-    setCurrentIndex(0);
-    setSelectedIndex(null);
-    setResult(null);
-    setSubmitError(null);
   }
 
   if (loading) {
@@ -121,31 +121,6 @@ export default function QuizPage() {
         <p className="max-w-[400px] rounded-2xl border border-red-200 bg-red-50 p-4 text-center text-sm text-red-700" role="alert">
           {error}
         </p>
-      </main>
-    );
-  }
-
-  if (finished) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-gradient-to-b from-slate-100 to-blue-50 px-4 py-6">
-        <div className="w-full max-w-[400px] rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xl shadow-slate-200/60">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-blue-600">
-            Unofficial
-          </p>
-          <h1 className="mt-3 text-2xl font-bold tracking-tight text-slate-900">
-            Quiz complete!
-          </h1>
-          <p className="mt-2 text-sm leading-relaxed text-slate-600">
-            Results page coming soon.
-          </p>
-          <button
-            type="button"
-            onClick={handleRestart}
-            className="mt-6 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-300 hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
-          >
-            Start Over
-          </button>
-        </div>
       </main>
     );
   }
@@ -244,11 +219,25 @@ export default function QuizPage() {
           {result && (
             <button
               type="button"
-              onClick={handleNext}
-              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-300 hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2"
+              onClick={() => void handleNext()}
+              disabled={completing}
+              className="mt-5 w-full rounded-2xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition-all duration-300 hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {isLastQuestion ? "Finish Quiz" : "Next Question"}
+              {completing
+                ? "Loading results..."
+                : isLastQuestion
+                  ? "Finish Quiz"
+                  : "Next Question"}
             </button>
+          )}
+
+          {completeError && (
+            <p
+              className="mt-4 rounded-xl bg-red-50 px-3 py-2 text-sm text-red-700"
+              role="alert"
+            >
+              {completeError}
+            </p>
           )}
         </section>
       </div>
