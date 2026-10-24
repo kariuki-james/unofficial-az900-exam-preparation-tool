@@ -2,29 +2,36 @@
 
 ## Repo state
 
-Scaffold for an "AZ-900 Unofficial Study Tool": FastAPI backend + React/Vite frontend. Many files are intentionally empty placeholders (`frontend/src/App.tsx`, `index.css`, everything under `components/`, `pages/`, `types/`). Build the app; don't assume it works.
+Working "AZ-900 Unofficial Study Tool": FastAPI backend + React 19/Vite frontend. The frontend has no router; `App.tsx` swaps `QuizPage` and `ResultsPage` via state, and "Retake Quiz" clears that state.
 
-- `frontend/src/services/api.ts` fetches `http://localhost:8000/questions`, but `backend/app/api.py` only defines `GET /`. Add the endpoint when implementing.
-- `backend/requirements.txt` is empty; the untracked `backend/.venv` (Python 3.14) has FastAPI/Uvicorn installed. Do not infer dependencies from `requirements.txt`.
-- Tailwind v4 is installed but not wired up: `vite.config.ts` lacks the `@tailwindcss/vite` plugin and `index.css` lacks `@import "tailwindcss";`.
-- No tests, CI, pre-commit, root `package.json`, or workspace config exist.
+- The FastAPI app lives in `backend/app/api.py` (`app.api:app`). `backend/app/main.py` is only a local Uvicorn runner. Routes: `/`, `/questions`, `/answers`, `/progress`.
+- Questions are 24 hardcoded dicts in `backend/app/questions.py`; keep `backend/app/schemas.py` and `frontend/src/types/index.ts` in sync when changing the shape.
+- `/progress` is demo-only in-memory state keyed by hardcoded `USER_ID = "demo"`. Every `POST /answers` accumulates, including retakes; it resets when the backend restarts. No database, auth, or reset endpoint.
+- `frontend/src/services/api.ts` uses `VITE_API_BASE_URL`, defaulting to `http://localhost:8000`.
+- Tailwind v4 is configured via `@tailwindcss/vite` plus `@import "tailwindcss";` in `frontend/src/index.css`. Dark mode is class-based (`@custom-variant dark`, `.dark` on `<html>`, localStorage key `az900-theme`); preserve this when editing styles.
+- No tests, CI, pre-commit, root `package.json`, or workspace config exist. `README.md` is hackathon-facing and has stale details (says React 18 and gives an invalid `app.main:app` command); trust `package.json` and code.
 
 ## Commands
 
 Frontend (from `frontend/`):
 
 - `npm install`
-- `npm run dev` — Vite on port 5173. Backend CORS only allows 5173, so don't let Vite fall back to another port.
+- `npm run dev` — Vite on 5173. Default backend CORS only permits `localhost`/`127.0.0.1:5173`; set `ALLOWED_ORIGINS` before using another port.
 - `npm run lint`
-- `npm run build` — runs `tsc -b && vite build`; currently fails because `App.tsx` has no default export.
+- `npm run build` — `tsc -b && vite build`; this is the only typecheck. Run lint and build before finishing; both currently pass.
 
 Backend (from `backend/`; the `app` package import requires this cwd):
 
-- `.venv/bin/python -m app.main` — Uvicorn with reload on port 8000
+- `.venv/bin/python -m app.main` — Uvicorn with reload on :8000
 - `.venv/bin/uvicorn app.api:app --reload` — equivalent
-- Verify routes at `http://localhost:8000/docs`.
+- The untracked `.venv` (Python 3.14) already has dependencies; `backend/requirements.txt` is `fastapi[standard]`.
+- No pytest suite: smoke-test routes with `fastapi.testclient` or `http://localhost:8000/docs`. Progress state persists for the life of the process, so use a fresh process for clean-state checks.
+
+Deployment env:
+
+- Backend: `ALLOWED_ORIGINS` (comma-separated; default `http://localhost:5173,http://127.0.0.1:5173`).
+- Frontend: set `VITE_API_BASE_URL` at build time for the deployed API.
 
 ## Conventions
 
-- Question data lives in `backend/app/questions.py` as dicts with `id`, `topic`, `question`, `options`, `correct_index`, `explanation`; keep the API response shape in sync with `frontend/src/types/index.ts`.
-- TypeScript uses `verbatimModuleSyntax` and `erasableSyntaxOnly`: use `import type` for type-only imports. `noUnusedLocals`/`noUnusedParameters` are enabled, so build fails on unused symbols.
+- TypeScript uses `verbatimModuleSyntax` and `erasableSyntaxOnly`: use `import type` for type-only imports. `noUnusedLocals`/`noUnusedParameters` are enabled, so unused symbols fail the build.
