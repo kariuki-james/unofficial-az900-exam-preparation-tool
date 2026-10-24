@@ -26,7 +26,7 @@ A Smart Quiz Builder and Readiness Tracker designed to help learners prepare for
 
 ---
 
-## 🧠 Prompt Engineering Strategy (20% Judging Criteria)
+## 🧠 Prompt Engineering Strategy
 
 I did not rely on vague, one-sentence prompts. Instead, I treated the AI as a junior developer, using a strict **"Role → Context → Exact Task → Constraints → Output Format"** framework. This ensured the AI generated production-ready code that fit the specific architecture.
 
